@@ -51,3 +51,56 @@ export const tryLogin = async (email, password, models, SECRET, SECRET2) => {
     refreshToken,
   };
 };
+
+export const refreshTokens = async (token, refreshToken, models, SECRET, SECRET2) => {
+  let userId = 0;
+  try {
+    const { user: { id } } = jwt.decode(refreshToken);
+    userId = id;
+  } catch (e) {
+    return {};
+  }
+
+  if (!userId) {
+    return {};
+  }
+
+  const user = await models.User.findOne({ where: { id: userId }, raw: true });
+  if (!user) {
+    return {};
+  }
+
+  const refreshSecret = user.password + SECRET2;
+  try {
+    jwt.verify(refreshToken, refreshSecret);
+  } catch (e) {
+    return {};
+  }
+  const [newToken, newRefreshToken] = await createTokens(user, SECRET, refreshSecret);
+  return {
+    token: newToken,
+    refreshToken: newRefreshToken,
+  };
+};
+
+export const authenticateUserByToken = (models, SECRET, SECRET2) =>
+  async (req, res, next) => {
+    const token = req.headers['x-token'];
+    if (token) {
+      try {
+        const { user } = jwt.verify(token, SECRET);
+        req.user = user;
+      } catch (e) {
+        const refreshToken = req.headers['x-refresh-token'];
+        const newTokens = await refreshTokens(token, refreshToken, models, SECRET, SECRET2);
+        if (newTokens.token && newTokens.refreshToken) {
+          res.set('Access-Control-Expose-Headers', 'x-token, x-refresh-token');
+          res.set('x-token', newTokens.token);
+          res.set('x-refresh-token', newTokens.refreshToken);
+        }
+        req.user = newTokens.user;
+      }
+    }
+    next();
+  };
+

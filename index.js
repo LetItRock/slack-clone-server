@@ -6,6 +6,7 @@ import path from 'path';
 import { fileLoader, mergeTypes, mergeResolvers } from 'merge-graphql-schemas';
 import cors from 'cors';
 import models from './models';
+import { authenticateUserByToken } from './auth';
 
 const SECRET = 'asdfst32134fds5yq26yga46';
 const SECRET2 = 'kajs2j1k2rjfo339mkldaasf';
@@ -21,22 +22,23 @@ const schema = makeExecutableSchema({
 const app = express();
 app.use(cors('*'));
 
+// authentication by token
+app.use(authenticateUserByToken(models, SECRET, SECRET2));
+
 const graphqlEndpoint = '/graphql';
 
 app.use(
   graphqlEndpoint,
   bodyParser.json(),
-  graphqlExpress({
+  graphqlExpress(req => ({
     schema,
     context: {
       models,
-      user: {
-        id: 1,
-      },
+      user: req.user,
       SECRET,
       SECRET2,
     },
-  }),
+  })),
 );
 
 app.use('/graphiql', graphiqlExpress({ endpointURL: graphqlEndpoint }));
