@@ -16,21 +16,9 @@ export default {
   },
   Mutation: {
     login: (parent, { email, password }, { models, SECRET, SECRET2 }) => tryLogin(email, password, models, SECRET, SECRET2),
-    register: async (parent, { password, ...args }, { models }) => {
+    register: async (parent, args, { models }) => {
       try {
-        if (models.User.isPasswordValid(password)) {
-          return {
-            ok: false,
-            errors: [
-              {
-                path: 'password',
-                message: 'The password needs to be between 8 and 18 characters long',
-              },
-            ],
-          };
-        }
-        const hashedPassword = await bcrypt.hash(password, 12);
-        const user = await models.User.create({ password: hashedPassword, ...args });
+        const user = await models.User.create(args);
         return {
           ok: true,
           user,

@@ -1,3 +1,5 @@
+import bcrypt from 'bcrypt';
+
 export default (sequelize, DataTypes) => {
   const User = sequelize.define(
     'user',
@@ -26,7 +28,24 @@ export default (sequelize, DataTypes) => {
           },
         },
       },
-      password: DataTypes.STRING,
+      password: {
+        type: DataTypes.STRING,
+        validate: {
+          len: {
+            args: [8, 18],
+            msg: 'The password needs to be between 8 and 18 characters long',
+          },
+        },
+      },
+    },
+    {
+      hooks: {
+        afterValidate: async (user) => {
+          const hashedPassword = await bcrypt.hash(user.password, 12);
+          // eslint-disable-next-line
+          user.password = hashedPassword;
+        },
+      },
     },
   );
 
@@ -48,7 +67,5 @@ export default (sequelize, DataTypes) => {
     });
   };
 
-  User.isPasswordValid = password => password.length < 8 || password.length > 18;
-  
   return User;
 };
