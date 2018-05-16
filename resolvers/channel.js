@@ -12,7 +12,7 @@ export default {
       } catch (e) {
         return {
           ok: false,
-          errors: formatErrors(e),
+          errors: formatErrors(e, models),
         };
       }
     },
