@@ -1,19 +1,28 @@
 import formatErrors from '../formatErrors';
 import { requiresAuth } from '../permissions';
 
-export default {
-  Query: {
-    allTeams: requiresAuth.createResolver(async (parent, args, { models, user }) =>
-      models.Team.findAll({ where: { owner: user.id } }, { raw: true })),
-    inviteTeams: requiresAuth.createResolver(async (parent, args, { models, user }) =>
-      models.Team.findAll({ // join to user table
+/* models.Team.findAll({ // join to user table
         include: [
           {
             model: models.User,
             where: { id: user.id },
           },
         ],
-      }, { raw: true })),
+      }, { raw: true })), */
+
+export default {
+  Query: {
+    allTeams: requiresAuth.createResolver(async (parent, args, { models, user }) =>
+      models.Team.findAll({ where: { owner: user.id } }, { raw: true })),
+    inviteTeams: requiresAuth.createResolver(
+      async (parent, args, { models, user }) =>
+        models
+          .sequelize
+          .query(
+            'select * from teams join members on id = team_id where user_id = ?',
+            { model: models.Team, replacements: [user.id] },
+          ),
+    ),
   },
   Mutation: {
     addTeamMember: requiresAuth.createResolver(async (parent, { email, teamId }, { models, user }) => {
