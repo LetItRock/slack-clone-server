@@ -1,5 +1,9 @@
 import express from 'express';
 import bodyParser from 'body-parser';
+import { createServer } from 'http';
+import { execute, subscribe } from 'graphql';
+// import { PubSub } from 'graphql-subscriptions';
+import { SubscriptionServer } from 'subscriptions-transport-ws';
 import { graphqlExpress, graphiqlExpress } from 'apollo-server-express';
 import { makeExecutableSchema } from 'graphql-tools';
 import path from 'path';
@@ -43,4 +47,21 @@ app.use(
 
 app.use('/graphiql', graphiqlExpress({ endpointURL: graphqlEndpoint }));
 
-models.sequelize.sync({ /* force: true */ }).then(x => app.listen(8081));
+const server = createServer(app);
+
+models.sequelize.sync({ /* force: true */ }).then(() => {
+  server.listen(8081, () => {
+    // eslint-disable-next-line
+    new SubscriptionServer(
+      {
+        execute,
+        subscribe,
+        schema,
+      },
+      {
+        server,
+        path: '/subscriptions',
+      },
+    );
+  });
+});
