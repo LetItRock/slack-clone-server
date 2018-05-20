@@ -1,4 +1,5 @@
 import express from 'express';
+import jwt from 'jsonwebtoken';
 import bodyParser from 'body-parser';
 import { createServer } from 'http';
 import { execute, subscribe } from 'graphql';
@@ -10,7 +11,7 @@ import path from 'path';
 import { fileLoader, mergeTypes, mergeResolvers } from 'merge-graphql-schemas';
 import cors from 'cors';
 import models from './models';
-import { authenticateUserByToken } from './auth';
+import { authenticateUserByToken, refreshTokens } from './auth';
 
 const SECRET = 'asdfst32134fds5yq26yga46';
 const SECRET2 = 'kajs2j1k2rjfo339mkldaasf';
@@ -45,7 +46,10 @@ app.use(
   })),
 );
 
-app.use('/graphiql', graphiqlExpress({ endpointURL: graphqlEndpoint }));
+app.use('/graphiql', graphiqlExpress({
+  endpointURL: graphqlEndpoint,
+  subscriptionsEndpoint: 'ws://localhost:8081/subscriptions',
+}));
 
 const server = createServer(app);
 
@@ -57,6 +61,18 @@ models.sequelize.sync({ /* force: true */ }).then(() => {
         execute,
         subscribe,
         schema,
+        onConnect: async ({ token, refreshToken }, webSocket) => {
+          if (token && refreshToken) {
+            try {
+              const { user } = jwt.verify(token, SECRET);
+              return { models, user };
+            } catch (e) {
+              const { user } = await refreshTokens(token, refreshToken, models, SECRET, SECRET2);
+              return { models, user };
+            }
+          }
+          return { models };
+        },
       },
       {
         server,
