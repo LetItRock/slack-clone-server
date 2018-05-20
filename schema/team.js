@@ -13,6 +13,10 @@ export default `
     errors: [Error!]
   }
 
+  type Query {
+    teamMembers(teamId: Int!): [User!]!
+  }
+
   type VoidResponse {
     ok: Boolean!
     errors: [Error!]
