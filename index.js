@@ -18,7 +18,7 @@ const SECRET2 = 'kajs2j1k2rjfo339mkldaasf';
 
 const typeDefs = mergeTypes(fileLoader(path.join(__dirname, './schema')));
 const resolvers = mergeResolvers(fileLoader(path.join(__dirname, './resolvers')));
-
+const PORT = process.env.TEST_PORT || 8081;
 const schema = makeExecutableSchema({
   typeDefs,
   resolvers,
@@ -48,13 +48,13 @@ app.use(
 
 app.use('/graphiql', graphiqlExpress({
   endpointURL: graphqlEndpoint,
-  subscriptionsEndpoint: 'ws://localhost:8081/subscriptions',
+  subscriptionsEndpoint: `ws://localhost:${PORT}/subscriptions`,
 }));
 
 const server = createServer(app);
 
 models.sequelize.sync({ /* force: true */ }).then(() => {
-  server.listen(8081, () => {
+  server.listen(PORT, () => {
     // eslint-disable-next-line
     new SubscriptionServer(
       {

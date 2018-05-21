@@ -9,7 +9,7 @@ export default {
         .sequelize
         .query(
           'select * from teams as team join members as member on team.id = member.team_id where member.user_id = ?',
-          { model: models.Team, replacements: [user.id] , raw: true },
+          { model: models.Team, replacements: [user.id], raw: true },
         ),
   },
   Query: {
