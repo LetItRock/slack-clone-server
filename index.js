@@ -10,6 +10,7 @@ import { makeExecutableSchema } from 'graphql-tools';
 import path from 'path';
 import { fileLoader, mergeTypes, mergeResolvers } from 'merge-graphql-schemas';
 import cors from 'cors';
+import formidable from 'formidable';
 import models from './models';
 import { authenticateUserByToken, refreshTokens } from './auth';
 
@@ -30,11 +31,44 @@ app.use(cors('*'));
 // authentication by token
 app.use(authenticateUserByToken(models, SECRET, SECRET2));
 
+const uploadDir = 'files';
+const fileMiddleware = (req, res, next) => {
+  if (!req.is('multipart/form-data')) {
+    return next();
+  }
+
+  const form = formidable.IncomingForm({
+    uploadDir,
+  });
+
+  form.parse(req, (error, { operations }, files) => {
+    if (error) {
+      console.log(error);
+    }
+
+    const document = JSON.parse(operations);
+
+    if (Object.keys(files).length) {
+      const { file: { type, path: filePath } } = files;
+      console.log(type);
+      console.log(filePath);
+      document.variables.file = {
+        type,
+        path: filePath,
+      };
+    }
+
+    req.body = document;
+    next();
+  });
+};
+
 const graphqlEndpoint = '/graphql';
 
 app.use(
   graphqlEndpoint,
   bodyParser.json(),
+  fileMiddleware,
   graphqlExpress(req => ({
     schema,
     context: {

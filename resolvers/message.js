@@ -24,9 +24,14 @@ export default {
       models.Message.findAll({ order: [['created_at', 'ASC']], where: { channelId } }, { raw: true })),
   },
   Mutation: {
-    createMessage: requiresAuth.createResolver(async (parent, args, { models, user }) => {
+    createMessage: requiresAuth.createResolver(async (parent, { file, ...args }, { models, user }) => {
       try {
-        const message = await models.Message.create({ ...args, userId: user.id });
+        const messageData = args;
+        if (file) {
+          messageData.filetype = file.type;
+          messageData.url = file.path;
+        }
+        const message = await models.Message.create({ ...messageData, userId: user.id });
         const asyncFunc = async () => {
           const currentUser = await models.User.findOne({
             where: {

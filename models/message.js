@@ -3,6 +3,8 @@ export default (sequelize, DataTypes) => {
     'message',
     {
       text: DataTypes.STRING,
+      url: DataTypes.STRING,
+      filetype: DataTypes.STRING,
     },
   );
 
