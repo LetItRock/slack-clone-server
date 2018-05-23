@@ -6,6 +6,7 @@ const NEW_CHANNEL_MESSAGE = 'NEW_CHANNEL_MESSAGE';
 
 export default {
   Message: {
+    url: parent => (parent.url ? `http://localhost:8081/${parent.url}` : parent.url),
     user: ({ user, userId }, args, { models }) => {
       if (user) return user;
       return models.User.findOne({ where: { id: userId } }, { raw: true });

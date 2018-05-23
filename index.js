@@ -28,6 +28,9 @@ const schema = makeExecutableSchema({
 const app = express();
 app.use(cors('*'));
 
+// serve static files
+app.use('/files', express.static('files'));
+
 // authentication by token
 app.use(authenticateUserByToken(models, SECRET, SECRET2));
 
