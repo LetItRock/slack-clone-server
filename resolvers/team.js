@@ -72,7 +72,13 @@ export default {
     }),
   },
   Team: {
-    channels: ({ id }, args, { models }) => models.Channel.findAll({ where: { teamId: id } }),
+    channels: ({ id }, args, { models, user }) =>
+      models.sequelize.query(
+        `select distinct on (id) *
+        from channels as c, pcmembers as pc
+        where team_id = :teamId and c.public = true or (pc.user_id = :userId and c.id = pc.channel_id)`,
+        { replacements: { teamId: id, userId: user.id }, model: models.Channel, raw: true },
+      ),
     directMessageMembers: ({ id }, args, { models, user }) =>
       models.sequelize.query(
         'select distinct on (u.id) u.* from users as u ' +
