@@ -11,8 +11,10 @@ import path from 'path';
 import { fileLoader, mergeTypes, mergeResolvers } from 'merge-graphql-schemas';
 import cors from 'cors';
 import formidable from 'formidable';
+import DataLoader from 'dataloader';
 import models from './models';
 import { authenticateUserByToken, refreshTokens } from './auth';
+import { channelBatcher } from './batchFunctions';
 
 const SECRET = 'asdfst32134fds5yq26yga46';
 const SECRET2 = 'kajs2j1k2rjfo339mkldaasf';
@@ -79,6 +81,7 @@ app.use(
       user: req.user,
       SECRET,
       SECRET2,
+      channelLoader: new DataLoader(ids => channelBatcher(ids, models, req.user)),
     },
   })),
 );
