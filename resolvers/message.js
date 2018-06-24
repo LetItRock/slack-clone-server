@@ -21,7 +21,7 @@ export default {
     },
   },
   Query: {
-    messages: requiresAuth.createResolver(async (parent, { channelId }, { models, user }) => {
+    messages: requiresAuth.createResolver(async (parent, { channelId, offset }, { models, user }) => {
       const channel = await models.Channel.findOne({ where: { id: channelId }, raw: true });
       if (!channel.public) {
         const member = await models.PCMember.findOne({ raw: true, where: { channelId, userId: user.id } });
@@ -29,7 +29,12 @@ export default {
           throw new Error('Not Authorized');
         }
       }
-      return models.Message.findAll({ order: [['created_at', 'ASC']], where: { channelId } }, { raw: true });
+      return models.Message.findAll({
+        order: [['created_at', 'ASC']],
+        where: { channelId },
+        limit: 35,
+        offset,
+      }, { raw: true });
     }),
   },
   Mutation: {
