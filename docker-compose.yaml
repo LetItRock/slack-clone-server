@@ -8,6 +8,8 @@ services:
     image: postgres
     networks:
       - webnet
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
     environment:
       POSTGRES_PASSWORD: root
       POSTGRES_USER: paty

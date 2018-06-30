@@ -12,7 +12,7 @@ import { fileLoader, mergeTypes, mergeResolvers } from 'merge-graphql-schemas';
 import cors from 'cors';
 import formidable from 'formidable';
 import DataLoader from 'dataloader';
-import models from './models';
+import getModels from './models';
 import { authenticateUserByToken, refreshTokens } from './auth';
 import { channelBatcher } from './batchFunctions';
 
@@ -22,6 +22,7 @@ const SECRET2 = 'kajs2j1k2rjfo339mkldaasf';
 const typeDefs = mergeTypes(fileLoader(path.join(__dirname, './schema')));
 const resolvers = mergeResolvers(fileLoader(path.join(__dirname, './resolvers')));
 const PORT = process.env.TEST_PORT || 8081;
+const graphqlEndpoint = '/graphql';
 const schema = makeExecutableSchema({
   typeDefs,
   resolvers,
@@ -32,10 +33,6 @@ app.use(cors('*'));
 
 // serve static files
 app.use('/files', express.static('files'));
-
-// authentication by token
-app.use(authenticateUserByToken(models, SECRET, SECRET2));
-
 const uploadDir = 'files';
 const fileMiddleware = (req, res, next) => {
   if (!req.is('multipart/form-data')) {
@@ -68,57 +65,65 @@ const fileMiddleware = (req, res, next) => {
   });
 };
 
-const graphqlEndpoint = '/graphql';
+getModels().then((models) => {
+  if (!models) {
+    console.log('Cannot connect to database after reconnect!');
+    return;
+  }
 
-app.use(
-  graphqlEndpoint,
-  bodyParser.json(),
-  fileMiddleware,
-  graphqlExpress(req => ({
-    schema,
-    context: {
-      models,
-      user: req.user,
-      SECRET,
-      SECRET2,
-      channelLoader: new DataLoader(ids => channelBatcher(ids, models, req.user)),
-      serverUrl: `${req.protocol}://${req.get('host')}`,
-    },
-  })),
-);
+  // authentication by token
+  app.use(authenticateUserByToken(models, SECRET, SECRET2));
 
-app.use('/graphiql', graphiqlExpress({
-  endpointURL: graphqlEndpoint,
-  subscriptionsEndpoint: `ws://localhost:${PORT}/subscriptions`,
-}));
+  app.use(
+    graphqlEndpoint,
+    bodyParser.json(),
+    fileMiddleware,
+    graphqlExpress(req => ({
+      schema,
+      context: {
+        models,
+        user: req.user,
+        SECRET,
+        SECRET2,
+        channelLoader: new DataLoader(ids => channelBatcher(ids, models, req.user)),
+        serverUrl: `${req.protocol}://${req.get('host')}`,
+      },
+    })),
+  );
 
-const server = createServer(app);
+  app.use('/graphiql', graphiqlExpress({
+    endpointURL: graphqlEndpoint,
+    subscriptionsEndpoint: `ws://localhost:${PORT}/subscriptions`,
+  }));
 
-models.sequelize.sync({ /* force: true */ }).then(() => {
-  server.listen(PORT, () => {
-    // eslint-disable-next-line
-    new SubscriptionServer(
-      {
-        execute,
-        subscribe,
-        schema,
-        onConnect: async ({ token, refreshToken }, webSocket) => {
-          if (token && refreshToken) {
-            try {
-              const { user } = jwt.verify(token, SECRET);
-              return { models, user };
-            } catch (e) {
-              const { user } = await refreshTokens(token, refreshToken, models, SECRET, SECRET2);
-              return { models, user };
+  const server = createServer(app);
+
+  models.sequelize.sync({ /* force: true */ }).then(() => {
+    server.listen(PORT, () => {
+      // eslint-disable-next-line
+      new SubscriptionServer(
+        {
+          execute,
+          subscribe,
+          schema,
+          onConnect: async ({ token, refreshToken } /* webSocket */) => {
+            if (token && refreshToken) {
+              try {
+                const { user } = jwt.verify(token, SECRET);
+                return { models, user };
+              } catch (e) {
+                const { user } = await refreshTokens(token, refreshToken, models, SECRET, SECRET2);
+                return { models, user };
+              }
             }
-          }
-          return { models };
+            return { models };
+          },
         },
-      },
-      {
-        server,
-        path: '/subscriptions',
-      },
-    );
+        {
+          server,
+          path: '/subscriptions',
+        },
+      );
+    });
   });
 });
