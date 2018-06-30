@@ -1,26 +1,27 @@
 import Sequelize from 'sequelize';
 
-const dbName = process.env.POSTGRESS_DB;
-const dbUser = process.env.POSTGRESS_USER;
-const dbPassword = process.env.POSTGRESS_PASSWORD;
+const dbName = process.env.POSTGRES_DB;
+const dbUser = process.env.POSTGRES_USER;
+const dbPassword = process.env.POSTGRES_PASSWORD;
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 export default async () => {
   let maxReconnects = 20;
   let connected = false;
-  let sequelize;
+  const sequelize = new Sequelize(process.env.TEST_DB || dbName, dbUser, dbPassword, {
+    dialect: 'postgres',
+    operatorAliases: Sequelize.Op,
+    host: process.env.DB_HOST || 'localhost',
+    define: {
+      underscored: true,
+    },
+  });
 
   while (!connected && maxReconnects) {
     try {
-      sequelize = new Sequelize(process.env.TEST_DB || dbName, dbUser, dbPassword, {
-        dialect: 'postgres',
-        operatorAliases: Sequelize.Op,
-        host: process.env.DB_HOST || 'localhost',
-        define: {
-          underscored: true,
-        },
-      });
+      // eslint-disable-next-line
+      await sequelize.authenticate();
       connected = true;
     } catch (e) {
       console.log('reconnect in 5 seconds');

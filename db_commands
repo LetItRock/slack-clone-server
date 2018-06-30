@@ -1,0 +1,5 @@
+pg_dump slack -f dump.sql // - dump db to file
+psql -h localhost -p 3030 -U paty§ slack // - connect to postgresql
+dropdb -h localhost -p 3030 -U paty slack // - drop database slack
+createdb -h localhost -p 3030 -U paty slack // - create database slack
+psql -h localhost -p 3030 -U paty slack < dump.sql // populate database slack with data from dump.sql file

@@ -7,3 +7,4 @@ dist
 *.log
 /coverage/**
 pgdata
+dump.sql
