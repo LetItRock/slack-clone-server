@@ -1,8 +1,13 @@
 import Sequelize from 'sequelize';
 
-const sequelize = new Sequelize(process.env.TEST_DB || 'slack', 'paty', 'root', {
+const dbName = process.env.POSTGRESS_DB;
+const dbUser = process.env.POSTGRESS_USER;
+const dbPassword = process.env.POSTGRESS_PASSWORD;
+
+const sequelize = new Sequelize(process.env.TEST_DB || dbName, dbUser, dbPassword, {
   dialect: 'postgres',
   operatorAliases: Sequelize.Op,
+  host: process.env.DB_HOST || 'localhost',
   define: {
     underscored: true,
   },
