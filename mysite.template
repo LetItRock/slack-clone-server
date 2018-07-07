@@ -1,5 +1,19 @@
 server {
-    location / {
+    location /files {
+        alias /files/;
+        gzip_static on; # compress files
+        expires max; # cache files in browser
+        add_header Cache-Control private;
+    }
+
+    location /subscriptions {
+        proxy_pass http://web:8081/subscriptions;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location /graphql {
         proxy_pass http://web:8081;
     }
 }

@@ -14,7 +14,7 @@ import formidable from 'formidable';
 import DataLoader from 'dataloader';
 import getModels from './models';
 import { authenticateUserByToken, refreshTokens } from './auth';
-import { channelBatcher } from './batchFunctions';
+import { channelBatcher, userBatcher } from './batchFunctions';
 
 const SECRET = 'asdfst32134fds5yq26yga46';
 const SECRET2 = 'kajs2j1k2rjfo339mkldaasf';
@@ -86,7 +86,8 @@ getModels().then((models) => {
         SECRET,
         SECRET2,
         channelLoader: new DataLoader(ids => channelBatcher(ids, models, req.user)),
-        serverUrl: `${req.protocol}://${req.get('host')}`,
+        userLoader: new DataLoader(ids => userBatcher(ids, models)),
+        serverUrl: process.env.SERVER_URL || 'http://localhost:8081',
       },
     })),
   );
